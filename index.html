@@ -35,6 +35,12 @@
         <canvas id="overlay"></canvas>
       </div>
 
+      <!-- Mode Toggle -->
+      <div id="modePanel" class="control-panel">
+        <button id="toggleMode" class="btn btn-primary">Mode: Speed Control</button>
+        <div class="mode-hint" id="modeHint">Tilt left = slower, right = faster</div>
+      </div>
+
       <!-- Status and controls -->
       <div id="statusPanel">
         <div class="status-item">
@@ -42,12 +48,16 @@
           <span id="tiltValue">0°</span>
         </div>
         <div class="status-item">
-          <span class="label">Speed:</span>
+          <span class="label">Speed/Dir:</span>
           <span id="speedValue">1.0x</span>
         </div>
         <div class="status-item">
           <span class="label">Status:</span>
           <span id="status">Ready</span>
+        </div>
+        <div class="status-item">
+          <span class="label">Face:</span>
+          <span id="faceStatus">-</span>
         </div>
       </div>
 
@@ -56,18 +66,18 @@
         <h3>Settings</h3>
         <div class="setting">
           <label for="sensitivity">Sensitivity:</label>
-          <input type="range" id="sensitivity" min="0.5" max="3" step="0.1" value="1.5" />
-          <span id="sensitivityValue">1.5</span>
+          <input type="range" id="sensitivity" min="0.5" max="3" step="0.1" value="1.0" />
+          <span id="sensitivityValue">1.0</span>
         </div>
         <div class="setting">
-          <label for="minSpeed">Min Speed:</label>
-          <input type="range" id="minSpeed" min="0.25" max="0.75" step="0.05" value="0.5" />
-          <span id="minSpeedValue">0.5x</span>
+          <label for="deadZone">Dead Zone:</label>
+          <input type="range" id="deadZone" min="0" max="10" step="0.5" value="3" />
+          <span id="deadZoneValue">3°</span>
         </div>
         <div class="setting">
-          <label for="maxSpeed">Max Speed:</label>
-          <input type="range" id="maxSpeed" min="1.5" max="3" step="0.1" value="2" />
-          <span id="maxSpeedValue">2.0x</span>
+          <label for="pauseDelay">Pause Delay:</label>
+          <input type="range" id="pauseDelay" min="0.5" max="5" step="0.5" value="2" />
+          <span id="pauseDelayValue">2.0s</span>
         </div>
         <div class="setting">
           <label>

@@ -20,14 +20,27 @@ class HeadTiltController {
     // State
     this.currentTilt = 0;
     this.currentSpeed = 1.0;
+    this.controlMode = 'speed'; // 'speed' or 'seek'
+
+    // Face detection state
+    this.faceDetected = false;
+    this.lastFaceDetectedTime = Date.now();
+    this.pauseTimer = null;
+    this.isPausing = false;
 
     // Settings
     this.settings = {
-      sensitivity: 1.5,
-      minSpeed: 0.5,
-      maxSpeed: 2.0,
+      sensitivity: 1.0,
+      deadZone: 3, // degrees
+      pauseDelay: 2.0, // seconds
       showCamera: true,
     };
+
+    // Discrete speed levels
+    this.speedLevels = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0];
+    this.seekRates = [-3, -2, -1, 1, 2, 3]; // negative = backward
+    this.currentLevelIndex = 2; // Start at 1.0x
+    this.seekIntervalId = null;
 
     // Wake Lock (to keep app active)
     this.wakeLock = null;
@@ -52,20 +65,25 @@ class HeadTiltController {
       this.loadYouTubeVideo();
     });
 
+    // Mode toggle
+    document.getElementById('toggleMode').addEventListener('click', () => {
+      this.toggleMode();
+    });
+
     // Settings
     document.getElementById('sensitivity').addEventListener('input', (e) => {
       this.settings.sensitivity = parseFloat(e.target.value);
       document.getElementById('sensitivityValue').textContent = e.target.value;
     });
 
-    document.getElementById('minSpeed').addEventListener('input', (e) => {
-      this.settings.minSpeed = parseFloat(e.target.value);
-      document.getElementById('minSpeedValue').textContent = e.target.value + 'x';
+    document.getElementById('deadZone').addEventListener('input', (e) => {
+      this.settings.deadZone = parseFloat(e.target.value);
+      document.getElementById('deadZoneValue').textContent = e.target.value + '°';
     });
 
-    document.getElementById('maxSpeed').addEventListener('input', (e) => {
-      this.settings.maxSpeed = parseFloat(e.target.value);
-      document.getElementById('maxSpeedValue').textContent = e.target.value + 'x';
+    document.getElementById('pauseDelay').addEventListener('input', (e) => {
+      this.settings.pauseDelay = parseFloat(e.target.value);
+      document.getElementById('pauseDelayValue').textContent = e.target.value + 's';
     });
 
     document.getElementById('showCamera').addEventListener('change', (e) => {
@@ -120,6 +138,27 @@ class HeadTiltController {
     }
 
     this.initYouTubePlayer(videoId);
+  }
+
+  toggleMode() {
+    this.controlMode = this.controlMode === 'speed' ? 'seek' : 'speed';
+    const modeBtn = document.getElementById('toggleMode');
+    const modeHint = document.getElementById('modeHint');
+
+    if (this.controlMode === 'speed') {
+      modeBtn.textContent = 'Mode: Speed Control';
+      modeHint.textContent = 'Tilt left = slower, right = faster';
+      this.currentLevelIndex = 2; // Reset to 1.0x
+      this.stopSeeking();
+      if (this.playerReady) {
+        this.player.setPlaybackRate(1.0);
+      }
+    } else {
+      modeBtn.textContent = 'Mode: Seek Control';
+      modeHint.textContent = 'Tilt left = rewind, right = fast forward';
+      this.currentLevelIndex = 3; // Center position (1x forward)
+    }
+    this.updateStatus('Mode: ' + (this.controlMode === 'speed' ? 'Speed' : 'Seek'));
   }
 
   extractVideoId(url) {
@@ -258,26 +297,106 @@ class HeadTiltController {
     if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
       const landmarks = results.multiFaceLandmarks[0];
 
-      // Draw face mesh (optional, for visual feedback)
-      if (this.settings.showCamera) {
-        this.drawFaceMesh(landmarks);
+      // Check if eyes are visible (simple check)
+      const leftEye = landmarks[33];
+      const rightEye = landmarks[263];
+      const eyesVisible = leftEye && rightEye;
+
+      if (eyesVisible) {
+        this.faceDetected = true;
+        this.lastFaceDetectedTime = Date.now();
+        this.updateFaceStatus('Detected');
+
+        // Resume if was pausing
+        if (this.isPausing) {
+          this.resumePlayback();
+        }
+
+        // Draw face mesh (optional, for visual feedback)
+        if (this.settings.showCamera) {
+          this.drawFaceMesh(landmarks);
+        }
+
+        // Calculate head tilt
+        const tilt = this.calculateHeadTilt(landmarks);
+        this.currentTilt = tilt;
+
+        // Update speed/seek based on tilt
+        this.updatePlaybackSpeed(tilt);
+
+        // Update UI
+        this.updateTiltDisplay(tilt);
+      } else {
+        this.handleNoFace();
       }
-
-      // Calculate head tilt
-      const tilt = this.calculateHeadTilt(landmarks);
-      this.currentTilt = tilt;
-
-      // Update speed based on tilt
-      this.updatePlaybackSpeed(tilt);
-
-      // Update UI
-      this.updateTiltDisplay(tilt);
     } else {
       // No face detected
-      this.updateTiltDisplay(0);
+      this.handleNoFace();
     }
 
     this.canvasCtx.restore();
+  }
+
+  handleNoFace() {
+    this.faceDetected = false;
+    const timeSinceLastFace = (Date.now() - this.lastFaceDetectedTime) / 1000;
+
+    this.updateFaceStatus('Lost');
+    this.updateTiltDisplay(0);
+
+    // Start pause countdown if not already pausing
+    if (!this.isPausing && timeSinceLastFace > this.settings.pauseDelay) {
+      this.startPauseCountdown();
+    }
+  }
+
+  startPauseCountdown() {
+    if (this.isPausing || !this.playerReady) return;
+
+    this.isPausing = true;
+    this.updateFaceStatus('Pausing...');
+
+    // Gradual slowdown
+    const slowdownDuration = 1000; // 1 second
+    const startSpeed = this.currentSpeed;
+    const startTime = Date.now();
+
+    const slowdown = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / slowdownDuration, 1);
+
+      if (this.faceDetected) {
+        // Face reappeared, cancel slowdown
+        return;
+      }
+
+      if (progress < 1) {
+        const newSpeed = startSpeed * (1 - progress);
+        if (this.controlMode === 'speed' && this.player) {
+          this.player.setPlaybackRate(Math.max(0.25, newSpeed));
+        }
+        requestAnimationFrame(slowdown);
+      } else {
+        // Pause the video
+        if (this.player) {
+          this.player.pauseVideo();
+          this.stopSeeking();
+        }
+        this.updateFaceStatus('Paused');
+      }
+    };
+
+    requestAnimationFrame(slowdown);
+  }
+
+  resumePlayback() {
+    if (!this.isPausing) return;
+
+    this.isPausing = false;
+    if (this.playerReady && this.player.getPlayerState() !== 1) {
+      // Not playing
+      this.player.playVideo();
+    }
   }
 
   drawFaceMesh(landmarks) {
@@ -335,40 +454,125 @@ class HeadTiltController {
   updatePlaybackSpeed(tilt) {
     if (!this.playerReady) return;
 
-    // Map tilt to playback speed
-    // Center (0°): normal speed (1.0x)
-    // Tilt right: faster
-    // Tilt left: slower
-
-    const { sensitivity, minSpeed, maxSpeed } = this.settings;
-
-    // Apply sensitivity and clamp to ±30 degrees
-    const normalizedTilt = Math.max(-30, Math.min(30, tilt * sensitivity));
-
-    // Map -30 to 30 degrees to minSpeed to maxSpeed
-    // 0 degrees = 1.0x
-    let speed;
-    if (normalizedTilt > 0) {
-      // Tilting right = speed up
-      speed = 1.0 + (normalizedTilt / 30) * (maxSpeed - 1.0);
+    // Apply dead zone
+    let effectiveTilt = tilt;
+    if (Math.abs(tilt) < this.settings.deadZone) {
+      effectiveTilt = 0;
     } else {
-      // Tilting left = slow down
-      speed = 1.0 + (normalizedTilt / 30) * (1.0 - minSpeed);
+      // Subtract dead zone from the tilt
+      effectiveTilt = tilt > 0 ? tilt - this.settings.deadZone : tilt + this.settings.deadZone;
     }
 
-    // Clamp to valid range
-    speed = Math.max(minSpeed, Math.min(maxSpeed, speed));
+    // Apply sensitivity
+    effectiveTilt *= this.settings.sensitivity;
 
-    // Only update if speed changed significantly
-    if (Math.abs(speed - this.currentSpeed) > 0.05) {
+    if (this.controlMode === 'speed') {
+      this.updateSpeedMode(effectiveTilt);
+    } else {
+      this.updateSeekMode(effectiveTilt);
+    }
+  }
+
+  updateSpeedMode(tilt) {
+    // Map tilt to discrete speed levels
+    // Determine target level based on tilt magnitude and direction
+
+    const maxTilt = 25; // degrees (after dead zone)
+    const numLevels = this.speedLevels.length;
+    const normalSpeedIndex = 2; // 1.0x is at index 2
+
+    let targetIndex;
+    if (Math.abs(tilt) < 2) {
+      // Very close to center - return to normal speed
+      targetIndex = normalSpeedIndex;
+    } else if (tilt > 0) {
+      // Tilt right - speed up
+      const rightLevels = numLevels - normalSpeedIndex - 1; // Levels above normal
+      const levelOffset = Math.ceil((tilt / maxTilt) * rightLevels);
+      targetIndex = Math.min(normalSpeedIndex + levelOffset, numLevels - 1);
+    } else {
+      // Tilt left - slow down
+      const levelOffset = Math.ceil((Math.abs(tilt) / maxTilt) * normalSpeedIndex);
+      targetIndex = Math.max(normalSpeedIndex - levelOffset, 0);
+    }
+
+    // Only update if changed
+    if (targetIndex !== this.currentLevelIndex) {
+      this.currentLevelIndex = targetIndex;
+      const speed = this.speedLevels[targetIndex];
       this.currentSpeed = speed;
 
       try {
         this.player.setPlaybackRate(speed);
-        this.updateSpeedDisplay(speed);
+        this.updateSpeedDisplay(speed + 'x');
       } catch (error) {
         console.error('Error setting playback speed:', error);
       }
+    }
+  }
+
+  updateSeekMode(tilt) {
+    // Map tilt to discrete seek rates
+    const maxTilt = 25; // degrees (after dead zone)
+    const numRates = this.seekRates.length;
+    const centerIndex = 3; // 1x forward is at index 3
+
+    let targetIndex;
+    if (Math.abs(tilt) < 2) {
+      // Center - play at normal speed
+      targetIndex = centerIndex;
+    } else if (tilt > 0) {
+      // Tilt right - fast forward
+      const rightLevels = numRates - centerIndex - 1;
+      const levelOffset = Math.ceil((tilt / maxTilt) * rightLevels);
+      targetIndex = Math.min(centerIndex + levelOffset, numRates - 1);
+    } else {
+      // Tilt left - rewind
+      const levelOffset = Math.ceil((Math.abs(tilt) / maxTilt) * centerIndex);
+      targetIndex = Math.max(centerIndex - levelOffset, 0);
+    }
+
+    // Only update if changed
+    if (targetIndex !== this.currentLevelIndex) {
+      this.currentLevelIndex = targetIndex;
+      const rate = this.seekRates[targetIndex];
+
+      this.stopSeeking();
+
+      if (rate > 0) {
+        // Forward seeking - use playback rate
+        try {
+          this.player.setPlaybackRate(rate);
+          if (this.player.getPlayerState() !== 1) {
+            this.player.playVideo();
+          }
+          this.updateSpeedDisplay('▶ ' + rate + 'x');
+        } catch (error) {
+          console.error('Error setting playback rate:', error);
+        }
+      } else {
+        // Backward seeking - need to seek manually
+        const absRate = Math.abs(rate);
+        this.player.setPlaybackRate(1.0);
+
+        // Seek backward continuously
+        this.seekIntervalId = setInterval(() => {
+          if (this.player && this.playerReady) {
+            const currentTime = this.player.getCurrentTime();
+            const newTime = Math.max(0, currentTime - absRate * 0.1); // Seek back based on rate
+            this.player.seekTo(newTime, true);
+          }
+        }, 100); // Update every 100ms
+
+        this.updateSpeedDisplay('◀ ' + absRate + 'x');
+      }
+    }
+  }
+
+  stopSeeking() {
+    if (this.seekIntervalId) {
+      clearInterval(this.seekIntervalId);
+      this.seekIntervalId = null;
     }
   }
 
@@ -378,11 +582,27 @@ class HeadTiltController {
   }
 
   updateSpeedDisplay(speed) {
-    document.getElementById('speedValue').textContent = speed.toFixed(2) + 'x';
+    document.getElementById('speedValue').textContent = speed;
   }
 
   updateStatus(message) {
     document.getElementById('status').textContent = message;
+  }
+
+  updateFaceStatus(status) {
+    const faceStatusEl = document.getElementById('faceStatus');
+    faceStatusEl.textContent = status;
+
+    // Color code the status
+    if (status === 'Detected') {
+      faceStatusEl.style.color = '#4ade80';
+    } else if (status === 'Pausing...' || status === 'Lost') {
+      faceStatusEl.style.color = '#fbbf24';
+    } else if (status === 'Paused') {
+      faceStatusEl.style.color = '#ef4444';
+    } else {
+      faceStatusEl.style.color = '#667eea';
+    }
   }
 }
 

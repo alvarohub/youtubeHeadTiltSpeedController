@@ -92,6 +92,28 @@ body {
   border-color: #667eea;
 }
 
+/* Mode Panel */
+#modePanel {
+  padding: 1rem;
+  background: #1a1a1a;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+  border-top: 1px solid #333;
+}
+
+#toggleMode {
+  padding: 0.8rem 1.5rem;
+  font-size: 1rem;
+}
+
+.mode-hint {
+  font-size: 0.85rem;
+  color: #999;
+  font-style: italic;
+}
+
 /* Camera Container */
 #cameraContainer {
   position: relative;
