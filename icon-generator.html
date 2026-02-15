@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Icon Generator</title>
+  </head>
+  <body>
+    <svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color: #667eea; stop-opacity: 1" />
+          <stop offset="100%" style="stop-color: #764ba2; stop-opacity: 1" />
+        </linearGradient>
+      </defs>
+
+      <!-- Background -->
+      <rect width="512" height="512" rx="100" fill="url(#grad)" />
+
+      <!-- Face outline -->
+      <circle cx="256" cy="220" r="120" fill="none" stroke="white" stroke-width="12" />
+
+      <!-- Eyes -->
+      <circle cx="220" cy="200" r="15" fill="white" />
+      <circle cx="292" cy="200" r="15" fill="white" />
+
+      <!-- Smile -->
+      <path d="M 200 250 Q 256 280 312 250" fill="none" stroke="white" stroke-width="12" stroke-linecap="round" />
+
+      <!-- Tilt indicator arrows -->
+      <path
+        d="M 100 380 L 150 420 L 100 460"
+        fill="none"
+        stroke="white"
+        stroke-width="12"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+      <path
+        d="M 412 380 L 362 420 L 412 460"
+        fill="none"
+        stroke="white"
+        stroke-width="12"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+
+      <!-- Video play button -->
+      <rect x="200" y="360" width="112" height="80" rx="8" fill="white" opacity="0.9" />
+      <polygon points="240,385 240,415 270,400" fill="#667eea" />
+    </svg>
+
+    <!-- Instructions for creating PNG files -->
+    <script>
+      // To create actual PNG files from this SVG:
+      // 1. Open this file in a browser
+      // 2. Right-click on the icon above
+      // 3. "Save image as..." icon-512.png
+      // 4. Use an image editor to resize to 192x192 for icon-192.png
+      // Or use an online SVG to PNG converter
+    </script>
+
+    <p style="font-family: sans-serif; padding: 20px">
+      <strong>Instructions:</strong><br />
+      1. Right-click the icon above and "Save image as..." to save as PNG<br />
+      2. Save as "icon-512.png" (512x512)<br />
+      3. Resize a copy to 192x192 and save as "icon-192.png"<br />
+      <br />
+      Or you can use this SVG directly in the manifest by saving the SVG code.
+    </p>
+  </body>
+</html>

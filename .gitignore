@@ -1,0 +1,19 @@
+# Certificate files (generated locally)
+cert.pem
+
+# macOS
+.DS_Store
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Dependencies (if you add any)
+node_modules/
+package-lock.json

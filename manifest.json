@@ -1,0 +1,27 @@
+{
+  "name": "Head Tilt YouTube Controller",
+  "short_name": "TiltControl",
+  "description": "Control YouTube playback speed with head tilt using face tracking",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#667eea",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["entertainment", "video", "utilities"],
+  "screenshots": [],
+  "permissions": ["camera", "wake-lock"]
+}

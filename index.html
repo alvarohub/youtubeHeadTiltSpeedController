@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-fullscreen" />
+    <title>Head Tilt YouTube Controller</title>
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- Header with controls -->
+      <header id="header">
+        <h1>🎬 Head Tilt Controller</h1>
+        <button id="toggleCamera" class="btn">Start Camera</button>
+      </header>
+
+      <!-- Video container -->
+      <div id="videoContainer">
+        <div id="player"></div>
+      </div>
+
+      <!-- Video URL input -->
+      <div id="urlInput" class="control-panel">
+        <input type="text" id="youtubeUrl" placeholder="Paste YouTube URL here..." />
+        <button id="loadVideo" class="btn btn-primary">Load Video</button>
+      </div>
+
+      <!-- Camera feed (mirrored for user) -->
+      <div id="cameraContainer">
+        <video id="cameraFeed" autoplay playsinline></video>
+        <canvas id="overlay"></canvas>
+      </div>
+
+      <!-- Status and controls -->
+      <div id="statusPanel">
+        <div class="status-item">
+          <span class="label">Head Tilt:</span>
+          <span id="tiltValue">0°</span>
+        </div>
+        <div class="status-item">
+          <span class="label">Speed:</span>
+          <span id="speedValue">1.0x</span>
+        </div>
+        <div class="status-item">
+          <span class="label">Status:</span>
+          <span id="status">Ready</span>
+        </div>
+      </div>
+
+      <!-- Settings panel -->
+      <div id="settingsPanel">
+        <h3>Settings</h3>
+        <div class="setting">
+          <label for="sensitivity">Sensitivity:</label>
+          <input type="range" id="sensitivity" min="0.5" max="3" step="0.1" value="1.5" />
+          <span id="sensitivityValue">1.5</span>
+        </div>
+        <div class="setting">
+          <label for="minSpeed">Min Speed:</label>
+          <input type="range" id="minSpeed" min="0.25" max="0.75" step="0.05" value="0.5" />
+          <span id="minSpeedValue">0.5x</span>
+        </div>
+        <div class="setting">
+          <label for="maxSpeed">Max Speed:</label>
+          <input type="range" id="maxSpeed" min="1.5" max="3" step="0.1" value="2" />
+          <span id="maxSpeedValue">2.0x</span>
+        </div>
+        <div class="setting">
+          <label>
+            <input type="checkbox" id="showCamera" checked />
+            Show Camera Feed
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- YouTube IFrame API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+
+    <!-- MediaPipe Face Mesh -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
+      crossorigin="anonymous"
+    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+
+    <!-- Main app -->
+    <script src="app.js"></script>
+  </body>
+</html>
