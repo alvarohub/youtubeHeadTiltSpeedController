@@ -1,5 +1,6 @@
 // Service Worker for PWA
-const CACHE_NAME = 'head-tilt-controller-v1';
+// Update version number whenever you make changes to invalidate old cache
+const CACHE_NAME = 'head-tilt-controller-v3';
 const urlsToCache = ['/', '/index.html', '/styles.css', '/app.js', '/manifest.json'];
 
 // Install event - cache files
@@ -17,16 +18,22 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Fetch event - serve from cache when possible
+// Fetch event - network first, fall back to cache (better for development)
 self.addEventListener('fetch', (event) => {
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      // Cache hit - return response
-      if (response) {
+    fetch(event.request)
+      .then((response) => {
+        // Clone the response before caching
+        const responseToCache = response.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, responseToCache);
+        });
         return response;
-      }
-      return fetch(event.request);
-    }),
+      })
+      .catch(() => {
+        // Network failed, try cache
+        return caches.match(event.request);
+      }),
   );
 });
 
