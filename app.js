@@ -508,87 +508,123 @@ class HeadTiltController {
 
     const ctx = canvas.getContext('2d');
     const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    const radius = Math.min(centerX, centerY) - 10;
+    const centerY = canvas.height - 10; // Bottom center for half-circle
+    const radius = Math.min(canvas.width, canvas.height * 2) / 2 - 10;
 
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw background circle
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-    ctx.strokeStyle = '#333';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // Draw dead zone (center circle)
+    // Convert angles to radians (fix direction: left tilt = negative angle on left side)
     const deadZoneAngle = (this.settings.deadZone * Math.PI) / 180;
+    const maxTiltAngle = (this.settings.maxTilt * Math.PI) / 180;
+    
+    // Base for half circle (bottom horizon)
+    const startAngle = Math.PI; // Left side
+    const endAngle = 0; // Right side
+
+    // Draw colored zones as pie slices
+    
+    // Left skip zone (red) - beyond max tilt on left
     ctx.beginPath();
     ctx.moveTo(centerX, centerY);
-    ctx.arc(centerX, centerY, radius * 0.3, -Math.PI / 2 - deadZoneAngle, -Math.PI / 2 + deadZoneAngle);
+    ctx.arc(centerX, centerY, radius, startAngle, startAngle + (Math.PI / 2 - maxTiltAngle));
     ctx.closePath();
-    ctx.fillStyle = 'rgba(102, 126, 234, 0.3)';
+    ctx.fillStyle = 'rgba(239, 68, 68, 0.4)'; // Red
+    ctx.fill();
+    
+    // Left slow zone (orange) - between dead zone and max tilt
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.arc(centerX, centerY, radius, startAngle + (Math.PI / 2 - maxTiltAngle), startAngle + (Math.PI / 2 - deadZoneAngle));
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(251, 191, 36, 0.4)'; // Orange
+    ctx.fill();
+    
+    // Dead zone in center (blue)
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.arc(centerX, centerY, radius, startAngle + (Math.PI / 2 - deadZoneAngle), startAngle + (Math.PI / 2 + deadZoneAngle));
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(102, 126, 234, 0.4)'; // Blue
+    ctx.fill();
+    
+    // Right fast zone (green) - between dead zone and max tilt
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.arc(centerX, centerY, radius, startAngle + (Math.PI / 2 + deadZoneAngle), startAngle + (Math.PI / 2 + maxTiltAngle));
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(34, 197, 94, 0.4)'; // Green
+    ctx.fill();
+    
+    // Right skip zone (red) - beyond max tilt on right
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.arc(centerX, centerY, radius, startAngle + (Math.PI / 2 + maxTiltAngle), endAngle);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(239, 68, 68, 0.4)'; // Red
     ctx.fill();
 
-    // Draw max tilt markers
-    const maxTiltAngle = (this.settings.maxTilt * Math.PI) / 180;
-
-    // Left max tilt line
+    // Draw outer arc
     ctx.beginPath();
-    ctx.moveTo(centerX, centerY);
-    const leftX = centerX + radius * Math.sin(-maxTiltAngle);
-    const leftY = centerY - radius * Math.cos(-maxTiltAngle);
-    ctx.lineTo(leftX, leftY);
-    ctx.strokeStyle = '#ef4444';
+    ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+    ctx.strokeStyle = '#667eea';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    
+    // Draw base line
+    ctx.beginPath();
+    ctx.moveTo(centerX - radius, centerY);
+    ctx.lineTo(centerX + radius, centerY);
+    ctx.strokeStyle = '#667eea';
     ctx.lineWidth = 3;
     ctx.stroke();
 
-    // Right max tilt line
-    ctx.beginPath();
-    ctx.moveTo(centerX, centerY);
-    const rightX = centerX + radius * Math.sin(maxTiltAngle);
-    const rightY = centerY - radius * Math.cos(maxTiltAngle);
-    ctx.lineTo(rightX, rightY);
-    ctx.strokeStyle = '#ef4444';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    // Draw current tilt indicator
+    // Draw current tilt indicator (fixed direction)
     if (this.currentTilt !== 0) {
-      const currentAngle = (-this.currentTilt * Math.PI) / 180;
+      // Convert tilt to angle (positive tilt = right = clockwise)
+      const currentAngle = startAngle + Math.PI / 2 + (this.currentTilt * Math.PI) / 180;
+      
       ctx.beginPath();
       ctx.moveTo(centerX, centerY);
-      const currentX = centerX + radius * 0.8 * Math.sin(currentAngle);
-      const currentY = centerY - radius * 0.8 * Math.cos(currentAngle);
+      const indicatorLength = radius * 0.85;
+      const currentX = centerX + indicatorLength * Math.cos(currentAngle);
+      const currentY = centerY + indicatorLength * Math.sin(currentAngle);
       ctx.lineTo(currentX, currentY);
       ctx.strokeStyle = '#4ade80';
-      ctx.lineWidth = 4;
+      ctx.lineWidth = 5;
       ctx.stroke();
 
       // Draw circle at end
       ctx.beginPath();
-      ctx.arc(currentX, currentY, 6, 0, 2 * Math.PI);
+      ctx.arc(currentX, currentY, 8, 0, 2 * Math.PI);
       ctx.fillStyle = '#4ade80';
       ctx.fill();
     }
 
     // Labels
-    ctx.fillStyle = '#999';
-    ctx.font = '12px sans-serif';
+    ctx.fillStyle = '#ccc';
+    ctx.font = 'bold 13px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('Dead Zone', centerX, centerY + 5);
-    ctx.fillText('Max →', centerX + radius * 0.7, centerY - radius * 0.3);
-    ctx.fillText('← Max', centerX - radius * 0.7, centerY - radius * 0.3);
-  }
-
-  // UI Updates
-  updateTiltDisplay(tilt) {
-    document.getElementById('tiltValue').textContent = tilt.toFixed(1) + '°';
-    this.updateCalibrationDisplay();
+    
+    // Zone labels
+    ctx.fillText('SKIP', centerX - radius * 0.7, centerY - 15);
+    ctx.fillText('SLOW', centerX - radius * 0.35, centerY - radius * 0.35);
+    ctx.fillText('NORMAL', centerX, centerY - radius * 0.5);
+    ctx.fillText('FAST', centerX + radius * 0.35, centerY - radius * 0.35);
+    ctx.fillText('SKIP', centerX + radius * 0.7, centerY - 15);
+    
+    // Show current tilt value in center
+    ctx.font = 'bold 24px monospace';
+    ctx.fillStyle = '#4ade80';
+    ctx.fillText(this.currentTilt.toFixed(1) + '°', centerX, centerY - 10);
   }
 
   updateSpeedDisplay(speed) {
-    document.getElementById('speedValue').textContent = speed;
+    // Speed is now shown in overlay on video - this method kept for compatibility
+  }
+
+  updateTiltDisplay(tilt) {
+    // Tilt is now shown in calibration display - this method kept for compatibility
   }
 
   updateStatus(message) {
