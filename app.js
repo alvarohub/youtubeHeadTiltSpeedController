@@ -517,13 +517,13 @@ class HeadTiltController {
     // Convert angles to radians (fix direction: left tilt = negative angle on left side)
     const deadZoneAngle = (this.settings.deadZone * Math.PI) / 180;
     const maxTiltAngle = (this.settings.maxTilt * Math.PI) / 180;
-    
+
     // Base for half circle (bottom horizon)
     const startAngle = Math.PI; // Left side
     const endAngle = 0; // Right side
 
     // Draw colored zones as pie slices
-    
+
     // Left skip zone (red) - beyond max tilt on left
     ctx.beginPath();
     ctx.moveTo(centerX, centerY);
@@ -531,31 +531,49 @@ class HeadTiltController {
     ctx.closePath();
     ctx.fillStyle = 'rgba(239, 68, 68, 0.4)'; // Red
     ctx.fill();
-    
+
     // Left slow zone (orange) - between dead zone and max tilt
     ctx.beginPath();
     ctx.moveTo(centerX, centerY);
-    ctx.arc(centerX, centerY, radius, startAngle + (Math.PI / 2 - maxTiltAngle), startAngle + (Math.PI / 2 - deadZoneAngle));
+    ctx.arc(
+      centerX,
+      centerY,
+      radius,
+      startAngle + (Math.PI / 2 - maxTiltAngle),
+      startAngle + (Math.PI / 2 - deadZoneAngle),
+    );
     ctx.closePath();
     ctx.fillStyle = 'rgba(251, 191, 36, 0.4)'; // Orange
     ctx.fill();
-    
+
     // Dead zone in center (blue)
     ctx.beginPath();
     ctx.moveTo(centerX, centerY);
-    ctx.arc(centerX, centerY, radius, startAngle + (Math.PI / 2 - deadZoneAngle), startAngle + (Math.PI / 2 + deadZoneAngle));
+    ctx.arc(
+      centerX,
+      centerY,
+      radius,
+      startAngle + (Math.PI / 2 - deadZoneAngle),
+      startAngle + (Math.PI / 2 + deadZoneAngle),
+    );
     ctx.closePath();
     ctx.fillStyle = 'rgba(102, 126, 234, 0.4)'; // Blue
     ctx.fill();
-    
+
     // Right fast zone (green) - between dead zone and max tilt
     ctx.beginPath();
     ctx.moveTo(centerX, centerY);
-    ctx.arc(centerX, centerY, radius, startAngle + (Math.PI / 2 + deadZoneAngle), startAngle + (Math.PI / 2 + maxTiltAngle));
+    ctx.arc(
+      centerX,
+      centerY,
+      radius,
+      startAngle + (Math.PI / 2 + deadZoneAngle),
+      startAngle + (Math.PI / 2 + maxTiltAngle),
+    );
     ctx.closePath();
     ctx.fillStyle = 'rgba(34, 197, 94, 0.4)'; // Green
     ctx.fill();
-    
+
     // Right skip zone (red) - beyond max tilt on right
     ctx.beginPath();
     ctx.moveTo(centerX, centerY);
@@ -570,7 +588,7 @@ class HeadTiltController {
     ctx.strokeStyle = '#667eea';
     ctx.lineWidth = 3;
     ctx.stroke();
-    
+
     // Draw base line
     ctx.beginPath();
     ctx.moveTo(centerX - radius, centerY);
@@ -583,7 +601,7 @@ class HeadTiltController {
     if (this.currentTilt !== 0) {
       // Convert tilt to angle (positive tilt = right = clockwise)
       const currentAngle = startAngle + Math.PI / 2 + (this.currentTilt * Math.PI) / 180;
-      
+
       ctx.beginPath();
       ctx.moveTo(centerX, centerY);
       const indicatorLength = radius * 0.85;
@@ -605,14 +623,14 @@ class HeadTiltController {
     ctx.fillStyle = '#ccc';
     ctx.font = 'bold 13px sans-serif';
     ctx.textAlign = 'center';
-    
+
     // Zone labels
     ctx.fillText('SKIP', centerX - radius * 0.7, centerY - 15);
     ctx.fillText('SLOW', centerX - radius * 0.35, centerY - radius * 0.35);
     ctx.fillText('NORMAL', centerX, centerY - radius * 0.5);
     ctx.fillText('FAST', centerX + radius * 0.35, centerY - radius * 0.35);
     ctx.fillText('SKIP', centerX + radius * 0.7, centerY - 15);
-    
+
     // Show current tilt value in center
     ctx.font = 'bold 24px monospace';
     ctx.fillStyle = '#4ade80';
@@ -624,7 +642,8 @@ class HeadTiltController {
   }
 
   updateTiltDisplay(tilt) {
-    // Tilt is now shown in calibration display - this method kept for compatibility
+    // Update calibration display to show current tilt
+    this.updateCalibrationDisplay();
   }
 
   updateStatus(message) {

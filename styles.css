@@ -304,7 +304,7 @@ body {
 
 #calibrationCanvas {
   background: #1a1a1a;
-  border-radius: 50%;
+  border-radius: 8px;
   border: 2px solid #667eea;
 }
 
