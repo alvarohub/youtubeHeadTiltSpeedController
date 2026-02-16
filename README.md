@@ -2,21 +2,40 @@
 
 Control YouTube video playback speed by tilting your head! This Progressive Web App (PWA) uses MediaPipe Face Mesh to detect head tilt from your front-facing camera and adjusts video playback speed in real-time.
 
+## 🌐 [**Try the Live Demo**](https://alvarohub.github.io/youtubeHeadTiltSpeedController/)
+
+**👉 https://alvarohub.github.io/youtubeHeadTiltSpeedController/**
+
+_Open on your smartphone for the best experience!_
+
 ## ✨ Features
 
+- **Dual Control Modes**: Speed Control (variable playback speed) or Seek Control (rewind/fast-forward)
 - **Head Tilt Detection**: Uses MediaPipe Face Mesh for accurate head tracking
-- **Real-time Speed Control**: Tilt right to speed up, left to slow down
+- **Discrete Speed Levels**: 0.5x, 0.75x, 1.0x, 1.25x, 1.5x, 2.0x, 3.0x
+- **Bidirectional Seek**: Rewind (-3x to -1x) or fast-forward (1x to 3x)
+- **Auto-Pause**: Automatically pauses when face not detected (eyes closed, looking away)
+- **Dead Zone**: Adjustable comfort zone so you don't need perfect posture
 - **YouTube IFrame API**: Direct control of YouTube videos
 - **PWA Support**: Install on your phone's home screen
 - **Wake Lock**: Keeps screen active during use
-- **Customizable Settings**: Adjust sensitivity and speed ranges
 - **Mobile Optimized**: Responsive design for smartphones
 
 ## 🎮 How It Works
 
-1. **Tilt Right** → Video speeds up (up to 2x or your max setting)
+### Speed Control Mode (Default)
+1. **Tilt Right** → Video speeds up through discrete levels (1.25x, 1.5x, 2.0x, 3.0x)
 2. **Head Straight** → Normal speed (1.0x)
-3. **Tilt Left** → Video slows down (down to 0.5x or your min setting)
+3. **Tilt Left** → Video slows down (0.75x, 0.5x)
+
+### Seek Control Mode
+1. **Tilt Right** → Fast forward (1x, 2x, 3x)
+2. **Head Straight** → Normal playback (1x)
+3. **Tilt Left** → Rewind backwards (-1x, -2x, -3x)
+
+### Auto-Pause
+- Close your eyes, look away, or leave → Video gradually slows down and pauses
+- Return to screen → Video automatically resumes!
 
 ## 🚀 Quick Start
 
