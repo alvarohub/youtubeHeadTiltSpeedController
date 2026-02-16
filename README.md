@@ -24,16 +24,19 @@ _Open on your smartphone for the best experience!_
 ## 🎮 How It Works
 
 ### Speed Control Mode (Default)
+
 1. **Tilt Right** → Video speeds up through discrete levels (1.25x, 1.5x, 2.0x, 3.0x)
 2. **Head Straight** → Normal speed (1.0x)
 3. **Tilt Left** → Video slows down (0.75x, 0.5x)
 
 ### Seek Control Mode
+
 1. **Tilt Right** → Fast forward (1x, 2x, 3x)
 2. **Head Straight** → Normal playback (1x)
 3. **Tilt Left** → Rewind backwards (-1x, -2x, -3x)
 
 ### Auto-Pause
+
 - Close your eyes, look away, or leave → Video gradually slows down and pauses
 - Return to screen → Video automatically resumes!
 
