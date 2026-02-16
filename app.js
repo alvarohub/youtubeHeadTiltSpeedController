@@ -31,16 +31,18 @@ class HeadTiltController {
     // Settings
     this.settings = {
       sensitivity: 1.0,
-      deadZone: 3, // degrees
+      deadZone: 3, // degrees (idle zone)
       maxTilt: 25, // degrees - beyond this triggers skip
-      pauseDelay: 2.0, // seconds
+      pauseDelay: 1.0, // seconds (fixed)
       showCamera: true,
     };
 
     // Discrete speed levels (0.5x to 4x)
     this.speedLevels = [0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0];
     this.currentLevelIndex = 2; // Start at 1.0x
+    this.previousLevelIndex = 2; // For hysteresis
     this.skipThreshold = 0.9; // 90% of maxTilt to trigger skip
+    this.hysteresisMargin = 0.15; // 15% hysteresis to prevent jitter
 
     // Wake Lock (to keep app active)
     this.wakeLock = null;
@@ -450,27 +452,66 @@ class HeadTiltController {
       return; // Don't update speed when skipping
     }
 
-    // Map tilt to discrete speed levels
+    // Map tilt to discrete speed levels with hysteresis (Schmitt trigger)
     const numLevels = this.speedLevels.length;
     const normalSpeedIndex = 2; // 1.0x is at index 2
 
     let targetIndex;
-    if (Math.abs(effectiveTilt) < 2) {
+    const centerThreshold = 2; // Threshold to return to center
+
+    if (Math.abs(effectiveTilt) < centerThreshold) {
       // Very close to center - return to normal speed
       targetIndex = normalSpeedIndex;
     } else if (effectiveTilt > 0) {
       // Tilt right - speed up
       const rightLevels = numLevels - normalSpeedIndex - 1; // Levels above normal
+
+      // Calculate target index without hysteresis
       const levelOffset = Math.ceil((effectiveTilt / this.settings.maxTilt) * rightLevels);
-      targetIndex = Math.min(normalSpeedIndex + levelOffset, numLevels - 1);
+      const rawTargetIndex = Math.min(normalSpeedIndex + levelOffset, numLevels - 1);
+
+      // Apply hysteresis: if moving toward center, require more change
+      if (this.currentLevelIndex > normalSpeedIndex) {
+        // Already speeding up - check if we should reduce speed
+        const movingTowardCenter = rawTargetIndex < this.currentLevelIndex;
+        if (movingTowardCenter) {
+          // Apply hysteresis: only change if difference exceeds margin
+          const hysteresisThreshold = 1 + this.hysteresisMargin;
+          const adjustedTilt = effectiveTilt * hysteresisThreshold;
+          const adjustedOffset = Math.ceil((adjustedTilt / this.settings.maxTilt) * rightLevels);
+          targetIndex = Math.max(Math.min(normalSpeedIndex + adjustedOffset, numLevels - 1), normalSpeedIndex);
+        } else {
+          targetIndex = rawTargetIndex;
+        }
+      } else {
+        targetIndex = rawTargetIndex;
+      }
     } else {
       // Tilt left - slow down
       const levelOffset = Math.ceil((Math.abs(effectiveTilt) / this.settings.maxTilt) * normalSpeedIndex);
-      targetIndex = Math.max(normalSpeedIndex - levelOffset, 0);
+      const rawTargetIndex = Math.max(normalSpeedIndex - levelOffset, 0);
+
+      // Apply hysteresis: if moving toward center, require more change
+      if (this.currentLevelIndex < normalSpeedIndex) {
+        // Already slowing down - check if we should increase speed
+        const movingTowardCenter = rawTargetIndex > this.currentLevelIndex;
+        if (movingTowardCenter) {
+          // Apply hysteresis: only change if difference exceeds margin
+          const hysteresisThreshold = 1 + this.hysteresisMargin;
+          const adjustedTilt = Math.abs(effectiveTilt) * hysteresisThreshold;
+          const adjustedOffset = Math.ceil((adjustedTilt / this.settings.maxTilt) * normalSpeedIndex);
+          targetIndex = Math.min(Math.max(normalSpeedIndex - adjustedOffset, 0), normalSpeedIndex);
+        } else {
+          targetIndex = rawTargetIndex;
+        }
+      } else {
+        targetIndex = rawTargetIndex;
+      }
     }
 
     // Only update if changed
     if (targetIndex !== this.currentLevelIndex) {
+      this.previousLevelIndex = this.currentLevelIndex;
       this.currentLevelIndex = targetIndex;
       const speed = this.speedLevels[targetIndex];
       this.currentSpeed = speed;

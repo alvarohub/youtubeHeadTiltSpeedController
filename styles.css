@@ -292,14 +292,30 @@ body {
 }
 
 /* Calibration Display */
+.calibration-controls-container {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  margin: 1rem 0;
+  flex-wrap: wrap;
+}
+
 .calibration-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 1rem 0;
   padding: 1rem;
   background: #2a2a2a;
   border-radius: 12px;
+  flex: 0 0 auto;
+}
+
+.controls-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  flex: 1;
+  min-width: 200px;
 }
 
 #calibrationCanvas {

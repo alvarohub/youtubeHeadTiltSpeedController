@@ -52,37 +52,46 @@
       <div id="settingsPanel">
         <h3>Settings</h3>
 
-        <!-- Calibration Display -->
-        <div class="calibration-container">
-          <canvas id="calibrationCanvas" width="280" height="150"></canvas>
-          <p class="calibration-hint">Live head tilt indicator with control zones</p>
-        </div>
-
-        <div class="setting">
-          <label for="sensitivity">Sensitivity:</label>
-          <input type="range" id="sensitivity" min="0.5" max="3" step="0.1" value="1.0" />
-          <span id="sensitivityValue">1.0</span>
-        </div>
-        <div class="setting">
-          <label for="deadZone">Dead Zone:</label>
-          <input type="range" id="deadZone" min="0" max="15" step="0.5" value="3" />
-          <span id="deadZoneValue">3°</span>
-        </div>
-        <div class="setting">
-          <label for="maxTilt">Max Tilt (Skip):</label>
-          <input type="range" id="maxTilt" min="15" max="40" step="1" value="25" />
-          <span id="maxTiltValue">25°</span>
-        </div>
-        <div class="setting">
-          <label for="pauseDelay">Pause Delay:</label>
-          <input type="range" id="pauseDelay" min="0.5" max="5" step="0.5" value="2" />
-          <span id="pauseDelayValue">2.0s</span>
-        </div>
         <div class="setting">
           <label>
             <input type="checkbox" id="showCamera" checked />
             Show Camera Feed
           </label>
+        </div>
+
+        <!-- Calibration and Controls Layout -->
+        <div class="calibration-controls-container">
+          <!-- Calibration Display (Left) -->
+          <div class="calibration-container">
+            <canvas id="calibrationCanvas" width="280" height="150"></canvas>
+            <p class="calibration-hint">Live head tilt indicator</p>
+          </div>
+
+          <!-- Controls (Right) -->
+          <div class="controls-container">
+            <div class="setting">
+              <label for="deadZone">Idle Zone:</label>
+              <input type="range" id="deadZone" min="0" max="15" step="0.5" value="3" />
+              <span id="deadZoneValue">3°</span>
+            </div>
+            <div class="setting">
+              <label for="maxTilt">Max Tilt (Skip):</label>
+              <input type="range" id="maxTilt" min="15" max="40" step="1" value="25" />
+              <span id="maxTiltValue">25°</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hidden controls (kept for functionality) -->
+        <div class="setting" style="display: none">
+          <label for="sensitivity">Sensitivity:</label>
+          <input type="range" id="sensitivity" min="0.5" max="3" step="0.1" value="1.0" />
+          <span id="sensitivityValue">1.0</span>
+        </div>
+        <div class="setting" style="display: none">
+          <label for="pauseDelay">Pause Delay:</label>
+          <input type="range" id="pauseDelay" min="0.5" max="5" step="0.5" value="1.0" />
+          <span id="pauseDelayValue">1.0s</span>
         </div>
       </div>
     </div>
