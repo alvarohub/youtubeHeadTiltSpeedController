@@ -20,27 +20,27 @@ class HeadTiltController {
     // State
     this.currentTilt = 0;
     this.currentSpeed = 1.0;
-    this.controlMode = 'speed'; // 'speed' or 'seek'
 
     // Face detection state
     this.faceDetected = false;
     this.lastFaceDetectedTime = Date.now();
     this.pauseTimer = null;
     this.isPausing = false;
+    this.lastSkipTime = 0; // Debounce for skip
 
     // Settings
     this.settings = {
       sensitivity: 1.0,
       deadZone: 3, // degrees
+      maxTilt: 25, // degrees - beyond this triggers skip
       pauseDelay: 2.0, // seconds
       showCamera: true,
     };
 
-    // Discrete speed levels
-    this.speedLevels = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0];
-    this.seekRates = [-3, -2, -1, 1, 2, 3]; // negative = backward
+    // Discrete speed levels (0.5x to 4x)
+    this.speedLevels = [0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0];
     this.currentLevelIndex = 2; // Start at 1.0x
-    this.seekIntervalId = null;
+    this.skipThreshold = 0.9; // 90% of maxTilt to trigger skip
 
     // Wake Lock (to keep app active)
     this.wakeLock = null;
@@ -65,11 +65,6 @@ class HeadTiltController {
       this.loadYouTubeVideo();
     });
 
-    // Mode toggle
-    document.getElementById('toggleMode').addEventListener('click', () => {
-      this.toggleMode();
-    });
-
     // Settings
     document.getElementById('sensitivity').addEventListener('input', (e) => {
       this.settings.sensitivity = parseFloat(e.target.value);
@@ -79,6 +74,13 @@ class HeadTiltController {
     document.getElementById('deadZone').addEventListener('input', (e) => {
       this.settings.deadZone = parseFloat(e.target.value);
       document.getElementById('deadZoneValue').textContent = e.target.value + '°';
+      this.updateCalibrationDisplay();
+    });
+
+    document.getElementById('maxTilt').addEventListener('input', (e) => {
+      this.settings.maxTilt = parseFloat(e.target.value);
+      document.getElementById('maxTiltValue').textContent = e.target.value + '°';
+      this.updateCalibrationDisplay();
     });
 
     document.getElementById('pauseDelay').addEventListener('input', (e) => {
@@ -138,27 +140,6 @@ class HeadTiltController {
     }
 
     this.initYouTubePlayer(videoId);
-  }
-
-  toggleMode() {
-    this.controlMode = this.controlMode === 'speed' ? 'seek' : 'speed';
-    const modeBtn = document.getElementById('toggleMode');
-    const modeHint = document.getElementById('modeHint');
-
-    if (this.controlMode === 'speed') {
-      modeBtn.textContent = 'Mode: Speed Control';
-      modeHint.textContent = 'Tilt left = slower, right = faster';
-      this.currentLevelIndex = 2; // Reset to 1.0x
-      this.stopSeeking();
-      if (this.playerReady) {
-        this.player.setPlaybackRate(1.0);
-      }
-    } else {
-      modeBtn.textContent = 'Mode: Seek Control';
-      modeHint.textContent = 'Tilt left = rewind, right = fast forward';
-      this.currentLevelIndex = 3; // Center position (1x forward)
-    }
-    this.updateStatus('Mode: ' + (this.controlMode === 'speed' ? 'Speed' : 'Seek'));
   }
 
   extractVideoId(url) {
@@ -344,58 +325,39 @@ class HeadTiltController {
     this.updateFaceStatus('Lost');
     this.updateTiltDisplay(0);
 
-    // Start pause countdown if not already pausing
+    // Instant pause after delay (no gradual slowdown)
     if (!this.isPausing && timeSinceLastFace > this.settings.pauseDelay) {
-      this.startPauseCountdown();
+      this.startPause();
     }
   }
 
-  startPauseCountdown() {
+  startPause() {
     if (this.isPausing || !this.playerReady) return;
 
     this.isPausing = true;
-    this.updateFaceStatus('Pausing...');
+    this.updateFaceStatus('Paused');
 
-    // Gradual slowdown
-    const slowdownDuration = 1000; // 1 second
-    const startSpeed = this.currentSpeed;
-    const startTime = Date.now();
-
-    const slowdown = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / slowdownDuration, 1);
-
-      if (this.faceDetected) {
-        // Face reappeared, cancel slowdown
-        return;
-      }
-
-      if (progress < 1) {
-        const newSpeed = startSpeed * (1 - progress);
-        if (this.controlMode === 'speed' && this.player) {
-          this.player.setPlaybackRate(Math.max(0.25, newSpeed));
-        }
-        requestAnimationFrame(slowdown);
-      } else {
-        // Pause the video
-        if (this.player) {
-          this.player.pauseVideo();
-          this.stopSeeking();
-        }
-        this.updateFaceStatus('Paused');
-      }
-    };
-
-    requestAnimationFrame(slowdown);
+    // Instant pause
+    if (this.player) {
+      this.player.pauseVideo();
+    }
   }
 
   resumePlayback() {
     if (!this.isPausing) return;
 
     this.isPausing = false;
-    if (this.playerReady && this.player.getPlayerState() !== 1) {
-      // Not playing
-      this.player.playVideo();
+    // Resume at normal speed (1.0x)
+    this.currentLevelIndex = 2;
+    this.currentSpeed = 1.0;
+    if (this.playerReady) {
+      this.player.setPlaybackRate(1.0);
+      if (this.player.getPlayerState() !== 1) {
+        // Not playing
+        this.player.playVideo();
+      }
+      this.updateSpeedDisplay('1.0x');
+      this.updateSpeedOverlay();
     }
   }
 
@@ -463,36 +425,47 @@ class HeadTiltController {
       effectiveTilt = tilt > 0 ? tilt - this.settings.deadZone : tilt + this.settings.deadZone;
     }
 
-    // Apply sensitivity
+    //Apply sensitivity
     effectiveTilt *= this.settings.sensitivity;
 
-    if (this.controlMode === 'speed') {
-      this.updateSpeedMode(effectiveTilt);
-    } else {
-      this.updateSeekMode(effectiveTilt);
+    // Check for skip (at max tilt extremes)
+    const skipTiltThreshold = this.settings.maxTilt * this.skipThreshold;
+    const now = Date.now();
+    const skipDebounce = 500; // ms between skips
+
+    if (Math.abs(effectiveTilt) >= skipTiltThreshold && now - this.lastSkipTime > skipDebounce) {
+      this.lastSkipTime = now;
+      const skipAmount = 10; // seconds
+      const currentTime = this.player.getCurrentTime();
+
+      if (effectiveTilt > 0) {
+        // Skip forward
+        this.player.seekTo(currentTime + skipAmount, true);
+        this.showSkipIndicator('▶▶ +10s');
+      } else {
+        // Skip backward
+        this.player.seekTo(Math.max(0, currentTime - skipAmount), true);
+        this.showSkipIndicator('◀◀ -10s');
+      }
+      return; // Don't update speed when skipping
     }
-  }
 
-  updateSpeedMode(tilt) {
     // Map tilt to discrete speed levels
-    // Determine target level based on tilt magnitude and direction
-
-    const maxTilt = 25; // degrees (after dead zone)
     const numLevels = this.speedLevels.length;
     const normalSpeedIndex = 2; // 1.0x is at index 2
 
     let targetIndex;
-    if (Math.abs(tilt) < 2) {
+    if (Math.abs(effectiveTilt) < 2) {
       // Very close to center - return to normal speed
       targetIndex = normalSpeedIndex;
-    } else if (tilt > 0) {
+    } else if (effectiveTilt > 0) {
       // Tilt right - speed up
       const rightLevels = numLevels - normalSpeedIndex - 1; // Levels above normal
-      const levelOffset = Math.ceil((tilt / maxTilt) * rightLevels);
+      const levelOffset = Math.ceil((effectiveTilt / this.settings.maxTilt) * rightLevels);
       targetIndex = Math.min(normalSpeedIndex + levelOffset, numLevels - 1);
     } else {
       // Tilt left - slow down
-      const levelOffset = Math.ceil((Math.abs(tilt) / maxTilt) * normalSpeedIndex);
+      const levelOffset = Math.ceil((Math.abs(effectiveTilt) / this.settings.maxTilt) * normalSpeedIndex);
       targetIndex = Math.max(normalSpeedIndex - levelOffset, 0);
     }
 
@@ -505,80 +478,113 @@ class HeadTiltController {
       try {
         this.player.setPlaybackRate(speed);
         this.updateSpeedDisplay(speed + 'x');
+        this.updateSpeedOverlay();
       } catch (error) {
         console.error('Error setting playback speed:', error);
       }
     }
   }
 
-  updateSeekMode(tilt) {
-    // Map tilt to discrete seek rates
-    const maxTilt = 25; // degrees (after dead zone)
-    const numRates = this.seekRates.length;
-    const centerIndex = 3; // 1x forward is at index 3
+  showSkipIndicator(text) {
+    const overlay = document.getElementById('speedOverlay');
+    overlay.textContent = text;
+    overlay.classList.add('skip-flash');
+    setTimeout(() => {
+      overlay.classList.remove('skip-flash');
+      this.updateSpeedOverlay();
+    }, 800);
+  }
 
-    let targetIndex;
-    if (Math.abs(tilt) < 2) {
-      // Center - play at normal speed
-      targetIndex = centerIndex;
-    } else if (tilt > 0) {
-      // Tilt right - fast forward
-      const rightLevels = numRates - centerIndex - 1;
-      const levelOffset = Math.ceil((tilt / maxTilt) * rightLevels);
-      targetIndex = Math.min(centerIndex + levelOffset, numRates - 1);
-    } else {
-      // Tilt left - rewind
-      const levelOffset = Math.ceil((Math.abs(tilt) / maxTilt) * centerIndex);
-      targetIndex = Math.max(centerIndex - levelOffset, 0);
-    }
-
-    // Only update if changed
-    if (targetIndex !== this.currentLevelIndex) {
-      this.currentLevelIndex = targetIndex;
-      const rate = this.seekRates[targetIndex];
-
-      this.stopSeeking();
-
-      if (rate > 0) {
-        // Forward seeking - use playback rate
-        try {
-          this.player.setPlaybackRate(rate);
-          if (this.player.getPlayerState() !== 1) {
-            this.player.playVideo();
-          }
-          this.updateSpeedDisplay('▶ ' + rate + 'x');
-        } catch (error) {
-          console.error('Error setting playback rate:', error);
-        }
-      } else {
-        // Backward seeking - need to seek manually
-        const absRate = Math.abs(rate);
-        this.player.setPlaybackRate(1.0);
-
-        // Seek backward continuously
-        this.seekIntervalId = setInterval(() => {
-          if (this.player && this.playerReady) {
-            const currentTime = this.player.getCurrentTime();
-            const newTime = Math.max(0, currentTime - absRate * 0.1); // Seek back based on rate
-            this.player.seekTo(newTime, true);
-          }
-        }, 100); // Update every 100ms
-
-        this.updateSpeedDisplay('◀ ' + absRate + 'x');
-      }
+  updateSpeedOverlay() {
+    const overlay = document.getElementById('speedOverlay');
+    if (overlay) {
+      overlay.textContent = this.currentSpeed.toFixed(1) + 'x';
     }
   }
 
-  stopSeeking() {
-    if (this.seekIntervalId) {
-      clearInterval(this.seekIntervalId);
-      this.seekIntervalId = null;
+  updateCalibrationDisplay() {
+    const canvas = document.getElementById('calibrationCanvas');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = Math.min(centerX, centerY) - 10;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw background circle
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Draw dead zone (center circle)
+    const deadZoneAngle = (this.settings.deadZone * Math.PI) / 180;
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.arc(centerX, centerY, radius * 0.3, -Math.PI / 2 - deadZoneAngle, -Math.PI / 2 + deadZoneAngle);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(102, 126, 234, 0.3)';
+    ctx.fill();
+
+    // Draw max tilt markers
+    const maxTiltAngle = (this.settings.maxTilt * Math.PI) / 180;
+
+    // Left max tilt line
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    const leftX = centerX + radius * Math.sin(-maxTiltAngle);
+    const leftY = centerY - radius * Math.cos(-maxTiltAngle);
+    ctx.lineTo(leftX, leftY);
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Right max tilt line
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    const rightX = centerX + radius * Math.sin(maxTiltAngle);
+    const rightY = centerY - radius * Math.cos(maxTiltAngle);
+    ctx.lineTo(rightX, rightY);
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Draw current tilt indicator
+    if (this.currentTilt !== 0) {
+      const currentAngle = (-this.currentTilt * Math.PI) / 180;
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      const currentX = centerX + radius * 0.8 * Math.sin(currentAngle);
+      const currentY = centerY - radius * 0.8 * Math.cos(currentAngle);
+      ctx.lineTo(currentX, currentY);
+      ctx.strokeStyle = '#4ade80';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      // Draw circle at end
+      ctx.beginPath();
+      ctx.arc(currentX, currentY, 6, 0, 2 * Math.PI);
+      ctx.fillStyle = '#4ade80';
+      ctx.fill();
     }
+
+    // Labels
+    ctx.fillStyle = '#999';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Dead Zone', centerX, centerY + 5);
+    ctx.fillText('Max →', centerX + radius * 0.7, centerY - radius * 0.3);
+    ctx.fillText('← Max', centerX - radius * 0.7, centerY - radius * 0.3);
   }
 
   // UI Updates
   updateTiltDisplay(tilt) {
     document.getElementById('tiltValue').textContent = tilt.toFixed(1) + '°';
+    this.updateCalibrationDisplay();
   }
 
   updateSpeedDisplay(speed) {
