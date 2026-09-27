@@ -1,0 +1,206 @@
+/* Head Tilt Controller for YouTube — injected overlay styles.
+   All selectors prefixed with htc- to avoid colliding with YouTube's CSS. */
+
+#htc-root {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 2147483647;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 220px;
+  padding: 10px;
+  background: rgba(10, 10, 14, 0.88);
+  border: 1px solid rgba(102, 126, 234, 0.6);
+  border-radius: 14px;
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 12px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55);
+}
+
+#htc-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#htc-title {
+  font-weight: 700;
+  font-size: 13px;
+  flex: 1;
+}
+
+.htc-btn {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  transition: transform 0.15s ease;
+}
+
+.htc-btn:active {
+  transform: scale(0.95);
+}
+
+.htc-icon {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 5px 8px;
+}
+
+/* Camera preview */
+#htc-cam {
+  position: relative;
+  width: 100%;
+  height: 90px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #667eea;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+#htc-cam.htc-hidden {
+  display: none;
+}
+
+#htc-feed {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* mirror */
+}
+
+#htc-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  transform: scaleX(-1); /* mirror to match feed */
+}
+
+#htc-angle {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #4ade80;
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 1px 6px;
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+/* Speed badge */
+#htc-speed {
+  align-self: center;
+  font-family: monospace;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 2px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(102, 126, 234, 0.5);
+  transition: transform 0.15s ease;
+}
+
+#htc-speed.htc-flash {
+  background: rgba(102, 126, 234, 0.85);
+  transform: scale(1.15);
+}
+
+#htc-status {
+  font-size: 11px;
+  color: #9aa0c3;
+  text-align: center;
+}
+
+/* Settings panel (collapsed by default) */
+#htc-panel {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding-top: 8px;
+}
+
+#htc-root.htc-open #htc-panel {
+  display: flex;
+}
+
+.htc-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #ccc;
+}
+
+.htc-row span {
+  min-width: 84px;
+}
+
+.htc-row b {
+  min-width: 34px;
+  text-align: right;
+  color: #8aa2ff;
+  font-family: monospace;
+}
+
+.htc-row input[type='range'] {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: #333;
+  outline: none;
+}
+
+.htc-row input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #667eea;
+  cursor: pointer;
+}
+
+.htc-row input[type='range']::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #667eea;
+  cursor: pointer;
+  border: none;
+}
+
+.htc-row input[type='checkbox'] {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+#htc-gauge {
+  width: 100%;
+  background: #16161d;
+  border-radius: 8px;
+  border: 1px solid #667eea;
+}
+
+.htc-credit {
+  text-align: center;
+  font-size: 9px;
+  color: #666;
+}

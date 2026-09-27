@@ -364,37 +364,45 @@ class HeadTiltController {
   }
 
   drawFaceMesh(landmarks) {
-    // Draw minimal face outline for visual feedback
-    this.canvasCtx.strokeStyle = '#667eea';
-    this.canvasCtx.lineWidth = 2;
+    // Draw the measured feature clearly: the eye-to-eye line that defines the tilt angle
+    const w = this.canvasElement.width;
+    const h = this.canvasElement.height;
+    const ctx = this.canvasCtx;
 
-    // Draw face oval
-    const faceOval = [
-      10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150,
-      136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109,
-    ];
+    const leftEye = landmarks[33];
+    const rightEye = landmarks[263];
+    const lx = leftEye.x * w;
+    const ly = leftEye.y * h;
+    const rx = rightEye.x * w;
+    const ry = rightEye.y * h;
+    const midY = (ly + ry) / 2;
 
-    this.canvasCtx.beginPath();
-    for (let i = 0; i < faceOval.length; i++) {
-      const point = landmarks[faceOval[i]];
-      const x = point.x * this.canvasElement.width;
-      const y = point.y * this.canvasElement.height;
+    // Horizontal reference line (dashed, white) = "level"
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    ctx.moveTo(w * 0.08, midY);
+    ctx.lineTo(w * 0.92, midY);
+    ctx.stroke();
+    ctx.setLineDash([]);
 
-      if (i === 0) {
-        this.canvasCtx.moveTo(x, y);
-      } else {
-        this.canvasCtx.lineTo(x, y);
-      }
-    }
-    this.canvasCtx.closePath();
-    this.canvasCtx.stroke();
+    // Measured eye line (bright green, thick)
+    ctx.strokeStyle = '#4ade80';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(lx, ly);
+    ctx.lineTo(rx, ry);
+    ctx.stroke();
 
-    // Draw nose tip (landmark 1) as reference point
-    const nose = landmarks[1];
-    this.canvasCtx.fillStyle = '#ff6b6b';
-    this.canvasCtx.beginPath();
-    this.canvasCtx.arc(nose.x * this.canvasElement.width, nose.y * this.canvasElement.height, 5, 0, 2 * Math.PI);
-    this.canvasCtx.fill();
+    // Eye points
+    ctx.fillStyle = '#4ade80';
+    ctx.beginPath();
+    ctx.arc(lx, ly, 4, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(rx, ry, 4, 0, 2 * Math.PI);
+    ctx.fill();
   }
 
   calculateHeadTilt(landmarks) {
@@ -685,6 +693,14 @@ class HeadTiltController {
   updateTiltDisplay(tilt) {
     // Update calibration display to show current tilt
     this.updateCalibrationDisplay();
+
+    // Update angle badge on the camera feed
+    const badge = document.getElementById('tiltAngle');
+    if (badge) {
+      const deg = Math.round(tilt);
+      badge.textContent = (deg > 0 ? '+' : '') + deg + '°';
+      badge.style.color = Math.abs(tilt) <= this.settings.deadZone ? '#667eea' : '#4ade80';
+    }
   }
 
   updateStatus(message) {

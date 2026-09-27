@@ -22,18 +22,19 @@
       <div id="videoContainer">
         <div id="player"></div>
         <div id="speedOverlay">1.0x</div>
+
+        <!-- Camera feed (mirrored for user) -->
+        <div id="cameraContainer">
+          <video id="cameraFeed" autoplay playsinline></video>
+          <canvas id="overlay"></canvas>
+          <div id="tiltAngle">0°</div>
+        </div>
       </div>
 
       <!-- Video URL input -->
       <div id="urlInput" class="control-panel">
         <input type="text" id="youtubeUrl" placeholder="Paste YouTube URL here..." />
         <button id="loadVideo" class="btn btn-primary">Load Video</button>
-      </div>
-
-      <!-- Camera feed (mirrored for user) -->
-      <div id="cameraContainer">
-        <video id="cameraFeed" autoplay playsinline></video>
-        <canvas id="overlay"></canvas>
       </div>
 
       <!-- Status and controls -->
@@ -94,6 +95,24 @@
           <span id="pauseDelayValue">1.0s</span>
         </div>
       </div>
+
+      <!-- Credits -->
+      <footer id="credits">Cesar Lamschtein &amp; Alvaro Cassinelli 2025</footer>
+    </div>
+
+    <!-- Splash screen with quick instructions -->
+    <div id="splash">
+      <div id="splashCard">
+        <h2>🎬 Head Tilt Controller</h2>
+        <ol>
+          <li>📋 Paste a YouTube URL and tap <strong>Load Video</strong></li>
+          <li>📷 Tap <strong>Start Camera</strong> and allow access</li>
+          <li>🙂 Tilt your <strong>head/phone</strong> lightly left/right to slow down / speed up</li>
+          <li>↩️ Tilt <strong>more</strong> to skip or rewind</li>
+          <li>⚙️ Scroll down to fine-tune the parameters</li>
+        </ol>
+        <button id="splashDismiss" class="btn btn-primary">Got it!</button>
+      </div>
     </div>
 
     <!-- Scripts -->
@@ -114,5 +133,22 @@
 
     <!-- Main app -->
     <script src="app.js"></script>
+
+    <!-- Splash dismiss -->
+    <script>
+      (function () {
+        var splash = document.getElementById('splash');
+        function dismiss() {
+          splash.classList.add('hidden');
+          setTimeout(function () {
+            splash.remove();
+          }, 400);
+        }
+        document.getElementById('splashDismiss').addEventListener('click', dismiss);
+        splash.addEventListener('click', function (e) {
+          if (e.target === splash) dismiss();
+        });
+      })();
+    </script>
   </body>
 </html>
