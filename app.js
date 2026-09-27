@@ -1,6 +1,50 @@
 // YouTube Head Tilt Controller
 // Main Application Logic
 
+// --- Service worker auto-update ---
+// When a new version of the app is deployed, detect it and offer a one-tap reload
+// (or auto-reload once the user dismisses the splash).
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistration().then((reg) => {
+    if (!reg) return;
+
+    // A new SW was installed and is waiting -> tell it to take over
+    reg.addEventListener('updatefound', () => {
+      const newWorker = reg.installing;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          // New content available - auto reload (old page is about to be stale anyway)
+          window.location.reload();
+        }
+      });
+    });
+  });
+
+  // When the new SW takes control, reload to get fresh assets
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      refreshing = true;
+      window.location.reload();
+    }
+  });
+}
+
+// Manual cache clear - wired up after DOM ready
+window.clearAppCache = function () {
+  if ('caches' in window) {
+    caches.keys().then((names) => {
+      for (const name of names) caches.delete(name);
+    });
+  }
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then((regs) => {
+      for (const reg of regs) reg.unregister();
+    });
+  }
+  setTimeout(() => window.location.reload(true), 300);
+};
+
 class HeadTiltController {
   constructor() {
     // YouTube player
