@@ -1,6 +1,6 @@
 // Service Worker for PWA
 // Update version number whenever you make changes to invalidate old cache
-const CACHE_NAME = 'head-tilt-controller-v6';
+const CACHE_NAME = 'head-tilt-controller-v7';
 const urlsToCache = ['/', '/index.html', '/styles.css', '/app.js', '/manifest.json'];
 
 // Install event - cache files

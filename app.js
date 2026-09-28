@@ -75,11 +75,14 @@ class HeadTiltController {
     // Settings
     this.settings = {
       sensitivity: 1.0,
-      deadZone: 3, // degrees (idle zone)
-      maxTilt: 25, // degrees - beyond this triggers skip
+      deadZone: 14, // degrees (idle zone)
+      maxTilt: 37, // degrees - beyond this triggers skip
       pauseDelay: 1.0, // seconds (fixed)
       showCamera: true,
     };
+
+    // Zero-set calibration: current raw tilt is treated as 0°
+    this.tiltOffset = 0;
 
     // Discrete speed levels (0.5x to 4x)
     this.speedLevels = [0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0];
@@ -137,6 +140,14 @@ class HeadTiltController {
     document.getElementById('showCamera').addEventListener('change', (e) => {
       this.settings.showCamera = e.target.checked;
       document.getElementById('cameraContainer').classList.toggle('hidden', !e.target.checked);
+    });
+
+    // Zero-set calibration buttons
+    document.getElementById('setZero').addEventListener('click', () => {
+      this.setZeroPoint();
+    });
+    document.getElementById('resetZero').addEventListener('click', () => {
+      this.resetZeroPoint();
     });
 
     // Handle visibility change (wake lock)
@@ -344,8 +355,9 @@ class HeadTiltController {
           this.drawFaceMesh(landmarks);
         }
 
-        // Calculate head tilt
-        const tilt = this.calculateHeadTilt(landmarks);
+        // Calculate head tilt (raw, then apply user-set zero offset)
+        const rawTilt = this.calculateHeadTilt(landmarks);
+        const tilt = rawTilt - this.tiltOffset;
         this.currentTilt = tilt;
 
         // Update speed/seek based on tilt
@@ -465,6 +477,22 @@ class HeadTiltController {
 
     // Normalize: positive = tilting right, negative = tilting left
     return -angleDegrees;
+  }
+
+  // Set the current raw head pose as the new "center" (0°)
+  setZeroPoint() {
+    // Raw tilt (before offset) is currentTilt + tiltOffset
+    const rawTilt = this.currentTilt + this.tiltOffset;
+    this.tiltOffset = rawTilt;
+    const el = document.getElementById('zeroOffsetValue');
+    if (el) el.textContent = this.tiltOffset.toFixed(1) + '°';
+  }
+
+  // Reset center back to absolute vertical (0°)
+  resetZeroPoint() {
+    this.tiltOffset = 0;
+    const el = document.getElementById('zeroOffsetValue');
+    if (el) el.textContent = '0.0°';
   }
 
   updatePlaybackSpeed(tilt) {

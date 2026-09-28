@@ -66,19 +66,30 @@
           <div class="calibration-container">
             <canvas id="calibrationCanvas" width="280" height="150"></canvas>
             <p class="calibration-hint">Live head tilt indicator</p>
+            <div class="calibration-buttons">
+              <button id="setZero" class="btn btn-primary" style="font-size: 0.8rem; padding: 0.45rem 0.9rem">
+                Set current as center
+              </button>
+              <button id="resetZero" class="btn" style="font-size: 0.8rem; padding: 0.45rem 0.9rem; opacity: 0.8">
+                Reset center
+              </button>
+            </div>
+            <p id="zeroOffsetDisplay" class="calibration-hint" style="margin-top: 0.3rem">
+              Center: <span id="zeroOffsetValue" style="color: #4ade80; font-weight: 600">0.0°</span> from vertical
+            </p>
           </div>
 
           <!-- Controls (Right) -->
           <div class="controls-container">
             <div class="setting">
               <label for="deadZone">Idle Zone:</label>
-              <input type="range" id="deadZone" min="0" max="15" step="0.5" value="3" />
-              <span id="deadZoneValue">3°</span>
+              <input type="range" id="deadZone" min="0" max="20" step="0.5" value="14" />
+              <span id="deadZoneValue">14°</span>
             </div>
             <div class="setting">
               <label for="maxTilt">Max Tilt (Skip):</label>
-              <input type="range" id="maxTilt" min="15" max="40" step="1" value="25" />
-              <span id="maxTiltValue">25°</span>
+              <input type="range" id="maxTilt" min="15" max="45" step="1" value="37" />
+              <span id="maxTiltValue">37°</span>
             </div>
           </div>
         </div>
@@ -96,7 +107,11 @@
         </div>
 
         <div class="setting">
-          <button class="btn" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; opacity: 0.7" onclick="window.clearAppCache()">
+          <button
+            class="btn"
+            style="font-size: 0.75rem; padding: 0.4rem 0.8rem; opacity: 0.7"
+            onclick="window.clearAppCache()"
+          >
             Clear cache &amp; reload
           </button>
         </div>
